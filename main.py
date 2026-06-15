@@ -56,11 +56,11 @@ class DualScraper:
                 }
 
                 if 'live' in classes or 'gools' in classes or 'started' in classes:
-                    m['status']='live'; m['status_text']='جارية الآن'; m['priority']=1; m['has_score']=True; m['is_live']=True
+                    m['status']='live'; m['status_text']='جارية الآن'; m['priority']=1; m['is_live']=True
                 elif 'comming-soon' in classes:
                     m['status']='soon'; m['status_text']='بعد قليل'; m['priority']=2; m['is_soon']=True
                 elif 'finished' in classes:
-                    m['status']='finished'; m['status_text']='انتهت'; m['priority']=4; m['has_score']=True; m['is_finished']=True
+                    m['status']='finished'; m['status_text']='انتهت'; m['priority']=4; m['is_finished']=True
 
                 tm1 = el.find('div', class_='TM1')
                 if tm1:
@@ -80,24 +80,25 @@ class DualScraper:
                 if time_el:
                     m['time'] = time_el.text.strip()
 
-                if m['has_score'] or el.find('span', class_='RS-goals'):
+                # Fix Score Issue: Only extract score if match is actually live or finished
+                if m['is_live'] or m['is_finished']:
                     gs = el.find_all('span', class_='RS-goals')
                     if len(gs) >= 2:
                         m['home_score'] = gs[0].text.strip()
                         m['away_score'] = gs[1].text.strip()
                         m['has_score'] = True
 
-                info = el.find('div', class_='MT_Info')
-                if info:
-                    lis = info.find_all('li')
-                    if len(lis) >= 3:
-                        m['tournament'] = lis[2].text.strip()
-                    elif len(lis) > 0:
-                        m['tournament'] = lis[-1].text.strip()
-
+                # Fix Tournament Issue: Extract from Title attribute
                 link = el.find('a', href=True)
                 if link:
                     m['match_url'] = link['href']
+                    title_attr = link.get('title', '')
+                    if 'في دوري ' in title_attr:
+                        m['tournament'] = title_attr.split('في دوري ')[-1].strip()
+                    elif 'في كأس ' in title_attr:
+                        m['tournament'] = title_attr.split('في كأس ')[-1].strip()
+                    elif 'في ' in title_attr:
+                        m['tournament'] = title_attr.split('في ')[-1].strip()
 
                 if m['home'] and m['away']:
                     matches.append(m)
